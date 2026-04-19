@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS目標設定ツール</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: #f5f6f8; display: flex; justify-content: center; min-height: 100vh; }
+  .app { width: 440px; min-height: 100vh; background: #f5f6f8; }
+
+  .header { background: #222; color: #fff; padding: 16px 20px; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .header .back { cursor: pointer; font-size: 18px; display: none; }
+  .header.has-back .back { display: block; }
+
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .card { background: #fff; border-radius: 10px; padding: 18px; margin-bottom: 12px; }
+  .card-title { font-size: 14px; font-weight: 700; color: #222; margin-bottom: 12px; }
+
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 12px; color: #666; font-weight: 600; margin-bottom: 4px; }
+  .field select, .field input {
+    width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;
+    font-size: 14px; color: #222; background: #fff;
+  }
+  .field select:focus, .field input:focus { outline: none; border-color: #222; }
+
+  .btn {
+    width: 100%; padding: 14px; background: #222; color: #fff; border: none;
+    border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  .btn:hover { background: #444; }
+  .btn.secondary { background: #e8e9eb; color: #222; margin-top: 4px; }
+  .btn.secondary:hover { background: #ddd; }
+
+  /* Result */
+  .store-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .store-name { font-size: 16px; font-weight: 700; color: #222; }
+  .tag { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background: #f0f0f0; color: #555; }
+
+  .goal-card {
+    background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 12px;
+    border-left: 4px solid #222;
+  }
+  .goal-card.sales { border-left-color: #2563EB; }
+  .goal-card.repeat { border-left-color: #059669; }
+
+  .goal-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .goal-kpi { font-size: 14px; font-weight: 700; color: #222; }
+  .goal-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
+  .goal-badge.sales { background: #EFF6FF; color: #2563EB; }
+  .goal-badge.repeat { background: #F0FDF4; color: #059669; }
+
+  .month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .month-box { background: #f8f9fa; border-radius: 6px; padding: 10px; text-align: center; }
+  .month-box .month { font-size: 11px; color: #888; font-weight: 600; }
+  .month-box .target { font-size: 18px; font-weight: 800; color: #222; margin-top: 2px; }
+  .month-box.m1 .target { color: #2563EB; }
+  .month-box.m2 .target { color: #D97706; }
+  .month-box.m3 .target { color: #059669; }
+
+  .goal-note { font-size: 11px; color: #999; margin-top: 10px; line-height: 1.5; }
+
+  .recommend-banner {
+    display: flex; align-items: center; gap: 8px; margin-top: 10px;
+    background: #F0FDF4; border-radius: 6px; padding: 8px 12px;
+  }
+  .recommend-banner .icon { font-size: 14px; }
+  .recommend-banner .text { font-size: 11px; color: #059669; font-weight: 600; }
+
+  .summary-row { display: flex; gap: 8px; }
+  .summary-item { flex: 1; background: #f8f9fa; border-radius: 6px; padding: 10px; text-align: center; }
+  .summary-item .s-label { font-size: 10px; color: #888; font-weight: 600; }
+  .summary-item .s-value { font-size: 14px; font-weight: 800; color: #222; margin-top: 2px; }
+
+  .action-list { margin-top: 8px; }
+  .action-row { padding: 10px 0; border-bottom: 1px solid #f0f0f0; display: flex; align-items: flex-start; gap: 8px; }
+  .action-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .action-num { font-size: 12px; font-weight: 800; color: #059669; min-width: 18px; }
+  .action-text { font-size: 13px; color: #222; line-height: 1.5; }
+  .action-text span { font-size: 11px; color: #888; display: block; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header" id="header">
+    <span class="back" onclick="goBack()">&larr;</span>
+    <span id="headerTitle">CS 目標設定ツール</span>
+  </div>
+
+  <!-- Page 1: Input -->
+  <div class="page active" id="page1">
+    <div class="card">
+      <div class="card-title">店舗情報を入力</div>
+      <div class="field">
+        <label>店舗名</label>
+        <input type="text" id="storeName" value="焼肉太郎 渋谷店">
+      </div>
+      <div class="field">
+        <label>業態</label>
+        <select id="type">
+          <option value="居酒屋">居酒屋</option>
+          <option value="カフェ">カフェ</option>
+          <option value="ラーメン">ラーメン</option>
+          <option value="焼肉" selected>焼肉</option>
+          <option value="イタリアン">イタリアン</option>
+          <option value="寿司">寿司</option>
+          <option value="和食">和食</option>
+          <option value="中華">中華</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>席数</label>
+        <select id="seats">
+          <option value="15">〜20席</option>
+          <option value="35" selected>20〜50席</option>
+          <option value="70">50席〜</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>立地</label>
+        <select id="location">
+          <option value="都心繁華街" selected>都心繁華街</option>
+          <option value="駅近">駅近</option>
+          <option value="オフィス街">オフィス街</option>
+          <option value="住宅街">住宅街</option>
+          <option value="郊外">郊外ロードサイド</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>客単価</label>
+        <select id="price">
+          <option value="800">〜1,000円</option>
+          <option value="2000">1,000〜3,000円</option>
+          <option value="4000" selected>3,000〜5,000円</option>
+          <option value="7000">5,000〜10,000円</option>
+          <option value="12000">10,000円〜</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" onclick="showResult()">目標を算出する</button>
+  </div>
+
+  <!-- Page 2: Result -->
+  <div class="page" id="page2">
+    <div class="card">
+      <div class="store-header">
+        <span class="store-name" id="rName"></span>
+        <span class="tag" id="rType"></span>
+        <span class="tag" id="rLoc"></span>
+        <span class="tag" id="rSeats"></span>
+      </div>
+      <div class="summary-row" id="rSummary"></div>
+    </div>
+
+    <div class="goal-card sales" id="salesCard"></div>
+    <div class="goal-card repeat" id="repeatCard"></div>
+
+    <div class="card">
+      <div class="card-title">目標達成のためのアクション</div>
+      <div class="action-list" id="actionList"></div>
+    </div>
+
+    <button class="btn secondary" onclick="goBack()">&larr; 入力に戻る</button>
+  </div>
+</div>
+
+<script>
+const master = {
+  "居酒屋":   { turn: 1.7, costRate: "28〜32%", fl: "58〜63%" },
+  "カフェ":   { turn: 3.5, costRate: "25〜30%", fl: "55〜60%" },
+  "ラーメン": { turn: 6.0, costRate: "28〜30%", fl: "55〜60%" },
+  "焼肉":    { turn: 1.3, costRate: "35〜40%", fl: "60〜65%" },
+  "イタリアン":{ turn: 1.5, costRate: "30〜35%", fl: "58〜63%" },
+  "寿司":    { turn: 1.2, costRate: "40〜48%", fl: "60〜68%" },
+  "和食":    { turn: 1.5, costRate: "32〜38%", fl: "58〜65%" },
+  "中華":    { turn: 2.5, costRate: "28〜33%", fl: "55〜62%" },
+};
+
+const locFactor = { "都心繁華街": 1.15, "駅近": 1.05, "オフィス街": 1.0, "住宅街": 0.9, "郊外": 0.85 };
+
+const DINII_AVG = 82;
+
+function fmt(n) { return Math.round(n).toLocaleString(); }
+
+function showResult() {
+  const type = document.getElementById('type').value;
+  const seats = parseInt(document.getElementById('seats').value);
+  const loc = document.getElementById('location').value;
+  const price = parseInt(document.getElementById('price').value);
+  const d = master[type];
+  const lf = locFactor[loc] || 1.0;
+
+  const monthlySales = seats * d.turn * price * 26 * lf;
+  const m1Sales = monthlySales * 0.85;
+  const m2Sales = monthlySales * 0.95;
+  const m3Sales = monthlySales;
+
+  // Header
+  document.getElementById('rName').textContent = document.getElementById('storeName').value;
+  document.getElementById('rType').textContent = type;
+  document.getElementById('rLoc').textContent = loc;
+  document.getElementById('rSeats').textContent = seats + '席相当';
+
+  document.getElementById('rSummary').innerHTML = `
+    <div class="summary-item"><div class="s-label">客単価</div><div class="s-value">${fmt(price)}円</div></div>
+    <div class="summary-item"><div class="s-label">想定回転率</div><div class="s-value">${d.turn}回</div></div>
+    <div class="summary-item"><div class="s-label">原価率目安</div><div class="s-value">${d.costRate}</div></div>
+  `;
+
+  // 売上目標
+  document.getElementById('salesCard').innerHTML = `
+    <div class="goal-top">
+      <div class="goal-kpi">月間売上目標</div>
+      <span class="goal-badge sales">目標 1</span>
+    </div>
+    <div class="month-grid">
+      <div class="month-box m1"><div class="month">1ヶ月目</div><div class="target">${fmt(m1Sales/10000)}万</div></div>
+      <div class="month-box m2"><div class="month">2ヶ月目</div><div class="target">${fmt(m2Sales/10000)}万</div></div>
+      <div class="month-box m3"><div class="month">3ヶ月目</div><div class="target">${fmt(m3Sales/10000)}万</div></div>
+    </div>
+    <div class="goal-note">席数${seats} × 回転率${d.turn} × 客単価${fmt(price)}円 × 26日で算出</div>
+  `;
+
+  // 再来店意欲（固定レコメンド）
+  document.getElementById('repeatCard').innerHTML = `
+    <div class="goal-top">
+      <div class="goal-kpi">再来店意欲</div>
+      <span class="goal-badge repeat">目標 2</span>
+    </div>
+    <div class="month-grid">
+      <div class="month-box m1"><div class="month">1ヶ月目</div><div class="target">78点</div></div>
+      <div class="month-box m2"><div class="month">2ヶ月目</div><div class="target">80点</div></div>
+      <div class="month-box m3"><div class="month">3ヶ月目</div><div class="target">82点</div></div>
+    </div>
+    <div class="recommend-banner">
+      <span class="icon">&#x2705;</span>
+      <span class="text">ダイニー加盟店全体の平均 82点 を目標に設定（推奨）</span>
+    </div>
+    <div class="goal-note">まず全体平均に到達することを目指し、段階的に改善していきましょう</div>
+  `;
+
+  // アクション
+  const actionItems = [
+    { text: "モバイルオーダーのおすすめ表示を最適化", sub: "客単価+5〜10%で月間売上を底上げ" },
+    { text: "セット・コースメニューの訴求を強化", sub: "単品注文より客単価+10〜15%" },
+    { text: "初回来店後3〜7日以内に再来店クーポン配信", sub: "再来店意欲の向上に直結" },
+    { text: "会計時のLINE友だち登録フローを最適化", sub: "会員化率UP → CRM施策の土台づくり" },
+  ];
+  document.getElementById('actionList').innerHTML = actionItems.map((a, i) => `
+    <div class="action-row">
+      <span class="action-num">${i+1}</span>
+      <div class="action-text">${a.text}<span>${a.sub}</span></div>
+    </div>
+  `).join('');
+
+  document.getElementById('page1').classList.remove('active');
+  document.getElementById('page2').classList.add('active');
+  document.getElementById('header').classList.add('has-back');
+  document.getElementById('headerTitle').textContent = '目標設定結果';
+  window.scrollTo(0, 0);
+}
+
+function goBack() {
+  document.getElementById('page2').classList.remove('active');
+  document.getElementById('page1').classList.add('active');
+  document.getElementById('header').classList.remove('has-back');
+  document.getElementById('headerTitle').textContent = 'CS 目標設定ツール';
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
